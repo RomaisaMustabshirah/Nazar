@@ -1,6 +1,8 @@
 """Tkinter windows: the control panel, the gaze rail on the screen edge, and calibration."""
 import queue
+import sys
 import tkinter as tk
+from pathlib import Path
 from tkinter import ttk
 
 from . import winapi
@@ -9,6 +11,12 @@ from .gaze import CALIB_POINTS, Calibration
 PAPER, INK, SOFT, TEAL, LINE = "#faf7f1", "#1d1b18", "#6f685e", "#0f7c80", "#d9d2c5"
 KEY = "#010203"   # transparent colour for the rail window
 RAIL_W = 22
+FROZEN = getattr(sys, "frozen", False)   # running as Nazar.exe
+
+
+def resource(name):
+    base = Path(getattr(sys, "_MEIPASS", Path(__file__).resolve().parent.parent))
+    return base / "assets" / name
 
 
 class App:
@@ -24,6 +32,13 @@ class App:
         self.root.resizable(False, False)
         self.root.protocol("WM_DELETE_WINDOW", self.quit)
         self.root.attributes("-topmost", True)
+        try:
+            if winapi.IS_WINDOWS:
+                self.root.iconbitmap(str(resource("nazar.ico")))
+            else:
+                self.root.iconphoto(True, tk.PhotoImage(file=str(resource("nazar.png"))))
+        except Exception:
+            pass
         self._build_panel()
         self._build_rail()
 
@@ -65,6 +80,12 @@ class App:
         tk.Checkbutton(r, text="Show gaze dot on screen edge", variable=self.rail_var, command=self._rail_toggled,
                        font=("Segoe UI", 10), fg=INK, bg=PAPER, activebackground=PAPER, selectcolor=PAPER,
                        anchor="w").pack(fill="x", pady=(6, 0), **pad)
+        if FROZEN and winapi.IS_WINDOWS:
+            self.auto_var = tk.BooleanVar(value=winapi.get_autostart())
+            tk.Checkbutton(r, text="Start Nazar when Windows starts", variable=self.auto_var,
+                           command=lambda: winapi.set_autostart(self.auto_var.get()),
+                           font=("Segoe UI", 10), fg=INK, bg=PAPER, activebackground=PAPER, selectcolor=PAPER,
+                           anchor="w").pack(fill="x", **pad)
 
         self.hint = tk.Label(r, font=("Segoe UI", 9), fg=SOFT, bg=PAPER, justify="left", anchor="w", wraplength=300, text=(
             "Scrolls whatever window is under your mouse pointer.\n"

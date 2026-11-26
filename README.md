@@ -8,7 +8,7 @@ Nazar comes in two forms:
 
 | | What it scrolls | Try it |
 |---|---|---|
-| **Desktop app** (Windows) | **Any** window: PDFs, browsers, Word, notes | `python -m nazar` |
+| **Desktop app** (Windows) | **Any** window: PDFs, browsers, Word, notes | [Download Nazar.exe](https://github.com/RomaisaMustabshirah/Nazar/releases/latest) |
 | **Web reader** | Text you paste into the page | https://romaisamustabshirah.github.io/Nazar/ |
 
 ## Your eyes are the controls
@@ -24,7 +24,13 @@ Desktop hotkeys: **Ctrl+Alt+N** pause / resume, **Ctrl+Alt+C** calibrate again.
 
 ## Desktop app
 
-### Install
+### Download (no Python needed)
+
+1. Get **Nazar-windows.zip** from the [latest release](https://github.com/RomaisaMustabshirah/Nazar/releases/latest).
+2. Unzip it anywhere and double-click **Nazar.exe**. (Windows may show "Windows protected your PC": click **More info → Run anyway**. The app isn't code-signed.)
+3. Optional: tick **Start Nazar when Windows starts** in the control panel.
+
+### Run from source
 
 Use Python 3.10 – 3.12 (MediaPipe may not support the newest Python yet).
 
@@ -57,6 +63,12 @@ The control panel has a **Speed** slider and a toggle for the gaze rail. More se
 | `zone_up` | `0.30` | Looking above this fraction of the screen scrolls up |
 | `zone_down` | `0.72` | Looking below this fraction scrolls down |
 
+### Build Nazar.exe yourself
+
+Double-click `build.bat`. The app appears in `dist\Nazar\Nazar.exe`.
+
+GitHub Actions builds it too: run **Build Nazar.exe** from the Actions tab, or push a tag such as `v2.0.0` to publish a release with the zip attached.
+
 ### Tests
 
 ```
@@ -80,6 +92,9 @@ nazar/
   winapi.py    mouse wheel, global hotkeys, click-through window
   ui.py        control panel, gaze rail, calibration screen
   config.py    settings in ~/.nazar/config.json
+  app.py       starts everything; writes ~/.nazar/error.log if something fails
+run_nazar.py   entry point for Nazar.exe
+build.bat      builds Nazar.exe with PyInstaller
 docs/
   index.html   the web reader (GitHub Pages)
 ```

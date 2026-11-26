@@ -86,3 +86,33 @@ def register_hotkeys(bindings):
     threading.Thread(target=run, daemon=True, name="hotkeys").start()
     ready.wait(2)
     return failed
+
+
+RUN_KEY = r"Software\Microsoft\Windows\CurrentVersion\Run"
+
+
+def get_autostart(name="Nazar"):
+    if not IS_WINDOWS:
+        return False
+    import winreg
+    try:
+        with winreg.OpenKey(winreg.HKEY_CURRENT_USER, RUN_KEY) as k:
+            winreg.QueryValueEx(k, name)
+            return True
+    except OSError:
+        return False
+
+
+def set_autostart(enabled, name="Nazar"):
+    """Start the app (this .exe) when you sign in to Windows."""
+    if not IS_WINDOWS:
+        return
+    import winreg
+    with winreg.OpenKey(winreg.HKEY_CURRENT_USER, RUN_KEY, 0, winreg.KEY_SET_VALUE) as k:
+        if enabled:
+            winreg.SetValueEx(k, name, 0, winreg.REG_SZ, f'"{sys.executable}"')
+        else:
+            try:
+                winreg.DeleteValue(k, name)
+            except OSError:
+                pass
