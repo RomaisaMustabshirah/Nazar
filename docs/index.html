@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Nazar</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Literata:opsz,wght@7..72,400;7..72,600&family=Inter:wght@400;500;600&family=Noto+Nastaliq+Urdu:wght@500&display=swap" rel="stylesheet">
+<style>
+/* VOICE  everyday tool: calm, bookish, quiet
+   IDEA   a reading desk that turns its own pages when your eyes reach the bottom
+   PICTURE the text itself, set beautifully, with a slim gaze rail on the right showing where you're looking
+   COLOUR warm paper white, ink near-black, one teal for the eye/gaze; dark theme is the same at night
+   TYPE   Literata for reading, Inter for controls, Noto Nastaliq Urdu for the name
+   LAYOUT one centred reading column; a sticky top bar with controls; the gaze rail fixed on the right edge */
+:root{color-scheme:light dark;--bg:light-dark(#faf7f1,#121313);--ink:light-dark(#1d1b18,#ece8e1);--soft:light-dark(#6f685e,#a39d93);--line:light-dark(#e6e0d5,#2a2b2b);--eye:light-dark(#0f7c80,#4cc7c9);--panel:light-dark(#fffdf9,#1a1c1c)}
+:root[data-theme=light]{color-scheme:light}:root[data-theme=dark]{color-scheme:dark}
+*{box-sizing:border-box;min-width:0}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font:16px/1.55 "Inter",system-ui,sans-serif;overflow-x:clip}
+header{position:sticky;top:0;z-index:5;background:color-mix(in srgb,var(--bg) 92%,transparent);backdrop-filter:blur(8px);border-bottom:1px solid var(--line)}
+.bar{max-width:1100px;margin:0 auto;padding:10px max(4vw,16px);display:flex;flex-wrap:wrap;align-items:center;gap:10px}
+.brand{font:600 22px "Literata",serif;margin-right:auto;display:flex;align-items:baseline;gap:10px}
+.brand .ur{font-family:"Noto Nastaliq Urdu",serif;font-size:18px;color:var(--eye)}
+button{font:500 15px "Inter",sans-serif;color:var(--ink);background:var(--panel);border:1px solid var(--line);border-radius:999px;padding:0 16px;height:44px;cursor:pointer}
+button:hover{border-color:var(--soft)}
+button:focus-visible,textarea:focus-visible{outline:2px solid var(--eye);outline-offset:2px}
+button.primary{background:var(--eye);border-color:var(--eye);color:#fff}
+button[aria-pressed=true]{background:var(--ink);color:var(--bg)}
+#status{font-size:14px;color:var(--soft);white-space:nowrap}
+#status b{color:var(--eye)}
+article{max-width:680px;margin:0 auto;padding:40px max(5vw,20px) 50vh;font:19px/1.75 "Literata",Georgia,serif}
+article h1{font-size:clamp(32px,5vw,46px);line-height:1.08;letter-spacing:-.02em;margin:0 0 6px}
+article .dek{color:var(--soft);font-size:17px;margin:0 0 28px}
+article h2{font-size:24px;line-height:1.2;margin:40px 0 10px}
+article p{margin:0 0 18px}
+.sample{font:13px "Inter",sans-serif;color:var(--soft);margin-bottom:28px}
+#rail{position:fixed;right:10px;top:72px;bottom:16px;width:10px;border-radius:99px;background:var(--line);z-index:4}
+#rail .zone{position:absolute;left:0;right:0;border-radius:99px;background:color-mix(in srgb,var(--eye) 22%,transparent)}
+#dot{position:absolute;left:-5px;width:20px;height:20px;border-radius:50%;background:var(--eye);border:3px solid var(--bg);transform:translateY(-50%);transition:top .08s linear;display:none}
+#calib{position:fixed;inset:0;z-index:20;background:color-mix(in srgb,var(--bg) 94%,transparent);display:none}
+#calib .target{position:absolute;left:50%;width:34px;height:34px;margin-left:-17px;border-radius:50%;background:var(--eye);box-shadow:0 0 0 10px color-mix(in srgb,var(--eye) 22%,transparent)}
+#calib p{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);font:500 20px "Inter",sans-serif;text-align:center;width:min(460px,90vw);margin:0}
+#paste{position:fixed;inset:0;z-index:15;display:none;place-items:center;background:rgba(0,0,0,.45);padding:16px}
+#paste .card{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:20px;width:min(640px,100%)}
+#paste textarea{width:100%;height:46vh;font:16px/1.6 "Literata",serif;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:12px;resize:vertical}
+#paste .row{display:flex;gap:10px;justify-content:flex-end;margin-top:12px}
+#cam{position:fixed;left:12px;bottom:12px;width:132px;border-radius:12px;transform:scaleX(-1);opacity:.9;z-index:4;display:none;border:1px solid var(--line)}
+@media(max-width:600px){#rail{top:160px}#status{width:100%;order:9}article{font-size:18px}#cam{width:96px}}
+@media(prefers-reduced-motion:reduce){#dot{transition:none}}
+</style>
+</head>
+<body>
+<header><div class="bar">
+  <div class="brand">Nazar <span class="ur">نظر</span></div>
+  <span id="status">Read hands-free: your eyes scroll the page.</span>
+  <button type="button" class="primary" id="start">👁 Start</button>
+  <button type="button" id="calibrate" disabled>Calibrate</button>
+  <button type="button" id="pause" aria-pressed="false" disabled>Pause</button>
+  <button type="button" id="own">Paste your text</button>
+</div></header>
+
+<div id="rail" aria-hidden="true"><div class="zone" id="zUp"></div><div class="zone" id="zDown"></div><div id="dot"></div></div>
+<video id="cam" playsinline muted></video>
+
+<article id="text">
+  <h1>Reading Without Hands</h1>
+  <p class="dek">How a webcam learned to turn the page, and why it matters more than it sounds.</p>
+  <p class="sample">Sample article. Use “Paste your text” to read your own notes, chapters or articles.</p>
+  <p>Most of us read with our hands as much as our eyes. We swipe, we scroll, we pinch, we flick. The gesture is so automatic that we only notice it when our hands are busy: stirring a pot while following a recipe, holding a cup of chai, or balancing a sleeping child on one arm while trying to finish a chapter with the other.</p>
+  <p>For some readers, it is not a matter of convenience at all. People living with paralysis, tremors, repetitive strain injuries or arthritis often find that the simplest part of reading on a screen, moving the page, is the hardest part. Specialised eye-tracking hardware exists, but it is expensive and rare. A webcam, on the other hand, is already built into almost every laptop.</p>
+  <h2>What a webcam can and cannot see</h2>
+  <p>A normal camera cannot tell exactly which word you are reading. The resolution is too low and the angle too shallow. What it can tell, with some help, is roughly where on the screen your eyes are pointing: high, middle or low. That turns out to be all you need to scroll.</p>
+  <p>The trick is to watch the irises. When you look down, each iris drifts toward the lower eyelid, and your head usually tilts a little too. When you look up, the opposite happens. Measure both, compare them with a quick calibration, and you get a dependable sense of whether someone is reading the top, the middle or the bottom of the page.</p>
+  <h2>Designing for the eyes</h2>
+  <p>The danger in eye control is what designers call the Midas touch: if everything you look at reacts, nothing is safe to look at. So the middle of the screen does nothing at all. Reading happens there, undisturbed. Only when your gaze settles near the bottom edge, the place your eyes naturally go when you reach the end of the visible text, does the page begin to move, slowly at first and faster the lower you look.</p>
+  <p>Looking near the top scrolls back, for the moment you want to re-read a line. And because people blink constantly, a single blink means nothing. Two quick blinks in a row, something people rarely do by accident, pauses the whole system, so you can look around the room without the page running away from you.</p>
+  <h2>Calibration is a conversation</h2>
+  <p>Everyone sits differently. Some people lean in; some recline with the laptop on their knees. Eyelids differ, glasses reflect light, and rooms are lit from different directions. Rather than pretend one setting fits all, the reader asks for five seconds of attention: look at a dot at the top of the screen, then at one at the bottom. From those two moments it learns your personal range and maps everything between them.</p>
+  <p>If you move to a new chair or the light changes, calibrate again. It takes less time than finding your place in a book.</p>
+  <h2>What it feels like</h2>
+  <p>The first few minutes feel strange, like the page is reading your mind. Then it becomes invisible. You read to the bottom, the text rises to meet you, and you keep going. Your hands are free to hold a cup, take notes on paper, or simply rest.</p>
+  <p>It is not perfect. Bright windows behind you confuse the camera, and very fast readers may want a little more speed. But for long articles, recipes, study notes and stories, it is a small, quiet kind of magic built from a webcam and some careful thinking about how people actually read.</p>
+  <h2>Privacy</h2>
+  <p>Everything happens inside your browser. The video never leaves your device, nothing is recorded, and the camera turns off the moment you press stop or close the page.</p>
+  <p>That is the end of the sample. Paste your own text and try reading it without touching anything.</p>
+</article>
+
+<div id="calib"><div class="target" id="target"></div><p id="calibMsg"></p></div>
+<div id="paste"><div class="card">
+  <textarea id="pasteBox" placeholder="Paste anything you want to read: notes, an article, a chapter…"></textarea>
+  <div class="row"><button type="button" id="cancelPaste">Cancel</button><button type="button" class="primary" id="usePaste">Read this</button></div>
+</div></div>
+
+<script type="module">
+{
+// ---------- settings ----------
+const ZONE_DOWN = 0.78;   // gaze below this (0 = top, 1 = bottom of screen) scrolls down
+const ZONE_UP = 0.16;     // gaze above this scrolls up
+const MAX_SPEED = 520;    // px per second at the very edge
+const SMOOTH = 0.25;      // gaze smoothing (lower = steadier)
+const BLINK = 0.5;        // blink score that counts as eyes closed
+const DOUBLE_BLINK = 0.7; // two blinks within this many seconds = pause / resume
+
+const $ = (id) => document.getElementById(id);
+const video = $("cam");
+let landmarker = null, running = false, paused = false, lastVT = -1, faceSeen = 0;
+let calib = null;            // {top, bottom}: raw gaze values at the two dots
+let raw = null, gaze = 0.5;  // raw gaze signal and calibrated 0..1 screen position
+let eyesClosed = false, blinks = [];
+try { calib = JSON.parse(localStorage.getItem("nazar-calib") || "null"); } catch (e) {}
+
+// ---------- gaze signal: iris position between the eyelids, plus head pitch ----------
+// FaceMesh indices: left eye upper lid 159, lower lid 145, iris 468; right eye 386, 374, 473.
+function gazeSignal(lm, matrix) {
+  const ratio = (iris, up, lo) => (lm[iris].y - lm[up].y) / Math.max(1e-4, lm[lo].y - lm[up].y);
+  const eyes = (ratio(468, 159, 145) + ratio(473, 386, 374)) / 2;
+  let pitch = 0;
+  if (matrix) { const m = matrix.data; pitch = Math.asin(Math.max(-1, Math.min(1, -m[6]))); }   // radians, + = looking down
+  return eyes + pitch * 1.2;
+}
+const toScreen = (r) => calib ? (r - calib.top) / (calib.bottom - calib.top) : 0.5;
+
+// ---------- camera + model ----------
+async function start() {
+  if (running) { stop(); return; }
+  setStatus("Starting camera…");
+  try {
+    video.srcObject = await navigator.mediaDevices.getUserMedia({ video: { width: { ideal: 640 }, height: { ideal: 480 }, facingMode: "user" }, audio: false });
+    await video.play();
+  } catch (e) {
+    setStatus(e && e.name === "NotAllowedError" ? "Camera blocked: allow it in the address bar, then press Start." : "No camera found.");
+    return;
+  }
+  if (!landmarker) {
+    setStatus("Loading face tracking (about 4 MB, first time only)…");
+    try {
+      const { FilesetResolver, FaceLandmarker } = await import("https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14");
+      const files = await FilesetResolver.forVisionTasks("https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm");
+      const opts = (delegate) => ({
+        baseOptions: { modelAssetPath: "https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task", delegate },
+        runningMode: "VIDEO", numFaces: 1, outputFaceBlendshapes: true, outputFacialTransformationMatrixes: true,
+      });
+      try { landmarker = await FaceLandmarker.createFromOptions(files, opts("GPU")); } catch { landmarker = await FaceLandmarker.createFromOptions(files, opts("CPU")); }
+    } catch (e) { console.error(e); setStatus("Couldn't load face tracking. Check your connection."); stop(); return; }
+  }
+  running = true; paused = false;
+  $("start").textContent = "■ Stop"; $("calibrate").disabled = false; $("pause").disabled = false;
+  video.style.display = "block"; $("dot").style.display = "block";
+  if (!calib) runCalibration(); else setStatus("");
+  requestAnimationFrame(loop);
+}
+function stop() {
+  running = false; video.srcObject?.getTracks().forEach((t) => t.stop());
+  $("start").textContent = "👁 Start"; $("calibrate").disabled = true; $("pause").disabled = true;
+  video.style.display = "none"; $("dot").style.display = "none"; setStatus("Stopped. The camera is off.");
+}
+
+// ---------- calibration: look at the top dot, then the bottom dot ----------
+let calibrating = null;
+function runCalibration() {
+  const steps = [{ y: 0.1, msg: "Look at the dot at the top", key: "top" }, { y: 0.9, msg: "Now look at the dot at the bottom", key: "bottom" }];
+  const out = {}; let i = 0;
+  $("calib").style.display = "block";
+  const next = () => {
+    if (i === steps.length) {
+      $("calib").style.display = "none"; calibrating = null;
+      if (Math.abs(out.bottom - out.top) < 0.04) { setStatus("Calibration was unclear. Sit facing the camera in good light and try again."); return; }
+      calib = out; try { localStorage.setItem("nazar-calib", JSON.stringify(calib)); } catch (e) {}
+      setStatus("Calibrated. Read normally; look low to scroll down.");
+      return;
+    }
+    const s = steps[i];
+    $("target").style.top = `calc(${s.y * 100}% - 17px)`; $("calibMsg").textContent = s.msg;
+    calibrating = { samples: [], until: performance.now() + 1800, settleAt: performance.now() + 600 };
+    const check = () => {
+      if (performance.now() < calibrating.until) { requestAnimationFrame(check); return; }
+      const v = calibrating.samples.sort((a, b) => a - b);
+      out[s.key] = v.length ? v[Math.floor(v.length / 2)] : 0;   // median ignores blinks and jitter
+      i++; next();
+    };
+    requestAnimationFrame(check);
+  };
+  next();
+}
+
+// ---------- main loop ----------
+let lastT = performance.now();
+function loop(now) {
+  if (!running) return;
+  const dt = Math.min(0.05, (now - lastT) / 1000); lastT = now;
+  if (video.readyState >= 2 && video.currentTime !== lastVT) {
+    lastVT = video.currentTime;
+    const res = landmarker.detectForVideo(video, now);
+    const lm = res.faceLandmarks && res.faceLandmarks[0];
+    if (lm) {
+      const bs = res.faceBlendshapes?.[0]?.categories || [];
+      const score = (n) => bs.find((c) => c.categoryName === n)?.score || 0;
+      const closed = (score("eyeBlinkLeft") + score("eyeBlinkRight")) / 2 > BLINK;
+      if (closed && !eyesClosed) onBlink(now / 1000);
+      eyesClosed = closed;
+      if (!closed) {
+        raw = gazeSignal(lm, res.facialTransformationMatrixes?.[0]);
+        if (calibrating && now > calibrating.settleAt) calibrating.samples.push(raw);
+        gaze += (toScreen(raw) - gaze) * SMOOTH;
+      }
+      faceSeen = now;
+    }
+  }
+  const lost = now - faceSeen > 600;
+  // scroll: nothing in the middle, gentle near the edges, faster the further you look
+  if (calib && !paused && !calibrating && !lost && !eyesClosed) {
+    let v = 0;
+    if (gaze > ZONE_DOWN) v = Math.min(1, (gaze - ZONE_DOWN) / (1 - ZONE_DOWN + .15));
+    else if (gaze < ZONE_UP) v = -Math.min(1, (ZONE_UP - gaze) / (ZONE_UP + .15));
+    if (v) window.scrollBy(0, Math.sign(v) * v * v * MAX_SPEED * dt);
+  }
+  // gaze rail
+  $("dot").style.top = `${Math.max(0, Math.min(1, gaze)) * 100}%`;
+  $("dot").style.opacity = lost || paused ? .3 : 1;
+  if (!calibrating && calib) setStatus(lost ? "Can't see your face. Sit facing the camera." : paused ? "<b>Paused</b>. Double blink to resume." : "<b>Eyes on.</b> Look low to scroll, high to go back.", true);
+  requestAnimationFrame(loop);
+}
+
+function onBlink(t) {
+  blinks = blinks.filter((b) => t - b < DOUBLE_BLINK); blinks.push(t);
+  if (blinks.length >= 2) { blinks = []; setPaused(!paused); }
+}
+function setPaused(p) { paused = p; $("pause").setAttribute("aria-pressed", String(p)); $("pause").textContent = p ? "Resume" : "Pause"; }
+function setStatus(s, html = false) { const el = $("status"); if (html) { if (el.innerHTML !== s) el.innerHTML = s; } else el.textContent = s; }
+
+// ---------- rail zones ----------
+$("zUp").style.cssText = `top:0;height:${ZONE_UP * 100}%`;
+$("zDown").style.cssText = `top:${ZONE_DOWN * 100}%;bottom:0`;
+
+// ---------- paste your own text ----------
+$("own").addEventListener("click", () => { $("paste").style.display = "grid"; $("pasteBox").focus(); });
+$("cancelPaste").addEventListener("click", () => { $("paste").style.display = "none"; });
+$("usePaste").addEventListener("click", () => {
+  const txt = $("pasteBox").value.trim(); if (!txt) return;
+  const art = $("text"); art.textContent = "";
+  for (const para of txt.split(/\n\s*\n|\n/)) { if (!para.trim()) continue; const p = document.createElement("p"); p.textContent = para.trim(); art.appendChild(p); }
+  if (/[؀-ۿ]/.test(txt)) { art.dir = "rtl"; art.style.fontFamily = '"Noto Nastaliq Urdu", serif'; art.style.lineHeight = "2.3"; } else { art.dir = "ltr"; art.style.fontFamily = ""; art.style.lineHeight = ""; }
+  $("paste").style.display = "none"; window.scrollTo(0, 0);
+});
+
+$("start").addEventListener("click", start);
+$("calibrate").addEventListener("click", runCalibration);
+$("pause").addEventListener("click", () => setPaused(!paused));
+window.nazar = { setGaze: (g) => { gaze = g; }, get gaze() { return gaze; } };
+}
+</script>
+</body>
+</html>
