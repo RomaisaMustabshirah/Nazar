@@ -21,14 +21,15 @@ html,body{margin:0}
 body{background:var(--bg);color:var(--ink);font:16px/1.55 "Inter",system-ui,sans-serif;overflow-x:clip}
 header{position:sticky;top:0;z-index:5;background:color-mix(in srgb,var(--bg) 92%,transparent);backdrop-filter:blur(8px);border-bottom:1px solid var(--line)}
 .bar{max-width:1100px;margin:0 auto;padding:10px max(4vw,16px);display:flex;flex-wrap:wrap;align-items:center;gap:10px}
-.brand{font:600 22px "Literata",serif;margin-right:auto;display:flex;align-items:baseline;gap:10px}
+.brand{font:600 22px "Literata",serif;display:flex;align-items:baseline;gap:10px}
 .brand .ur{font-family:"Noto Nastaliq Urdu",serif;font-size:18px;color:var(--eye)}
 button{font:500 15px "Inter",sans-serif;color:var(--ink);background:var(--panel);border:1px solid var(--line);border-radius:999px;padding:0 16px;height:44px;cursor:pointer}
 button:hover{border-color:var(--soft)}
 button:focus-visible,textarea:focus-visible{outline:2px solid var(--eye);outline-offset:2px}
 button.primary{background:var(--eye);border-color:var(--eye);color:#fff}
 button[aria-pressed=true]{background:var(--ink);color:var(--bg)}
-#status{font-size:14px;color:var(--soft);white-space:nowrap}
+.spd{display:flex;align-items:center;gap:8px;font-size:14px;color:var(--soft)}.spd input{width:110px;accent-color:var(--eye)}
+#status{flex:1 1 0;font-size:14px;color:var(--soft);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:right}
 #status b{color:var(--eye)}
 article{max-width:680px;margin:0 auto;padding:40px max(5vw,20px) 50vh;font:19px/1.75 "Literata",Georgia,serif}
 article h1{font-size:clamp(32px,5vw,46px);line-height:1.08;letter-spacing:-.02em;margin:0 0 6px}
@@ -36,18 +37,18 @@ article .dek{color:var(--soft);font-size:17px;margin:0 0 28px}
 article h2{font-size:24px;line-height:1.2;margin:40px 0 10px}
 article p{margin:0 0 18px}
 .sample{font:13px "Inter",sans-serif;color:var(--soft);margin-bottom:28px}
-#rail{position:fixed;right:10px;top:72px;bottom:16px;width:10px;border-radius:99px;background:var(--line);z-index:4}
+#rail{position:fixed;right:10px;top:0;bottom:0;width:10px;border-radius:99px;background:var(--line);z-index:6;pointer-events:none;opacity:.85}
 #rail .zone{position:absolute;left:0;right:0;border-radius:99px;background:color-mix(in srgb,var(--eye) 22%,transparent)}
 #dot{position:absolute;left:-5px;width:20px;height:20px;border-radius:50%;background:var(--eye);border:3px solid var(--bg);transform:translateY(-50%);transition:top .08s linear;display:none}
 #calib{position:fixed;inset:0;z-index:20;background:color-mix(in srgb,var(--bg) 94%,transparent);display:none}
 #calib .target{position:absolute;left:50%;width:34px;height:34px;margin-left:-17px;border-radius:50%;background:var(--eye);box-shadow:0 0 0 10px color-mix(in srgb,var(--eye) 22%,transparent)}
-#calib p{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);font:500 20px "Inter",sans-serif;text-align:center;width:min(460px,90vw);margin:0}
+#calib p{position:absolute;left:50%;top:62%;transform:translate(-50%,-50%);font:500 20px "Inter",sans-serif;text-align:center;width:min(460px,90vw);margin:0}
 #paste{position:fixed;inset:0;z-index:15;display:none;place-items:center;background:rgba(0,0,0,.45);padding:16px}
 #paste .card{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:20px;width:min(640px,100%)}
 #paste textarea{width:100%;height:46vh;font:16px/1.6 "Literata",serif;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:12px;resize:vertical}
 #paste .row{display:flex;gap:10px;justify-content:flex-end;margin-top:12px}
 #cam{position:fixed;left:12px;bottom:12px;width:132px;border-radius:12px;transform:scaleX(-1);opacity:.9;z-index:4;display:none;border:1px solid var(--line)}
-@media(max-width:600px){#rail{top:160px}#status{width:100%;order:9}article{font-size:18px}#cam{width:96px}}
+@media(max-width:600px){#status{flex-basis:100%;order:9;text-align:left;white-space:normal}.spd input{width:80px}article{font-size:18px}#cam{width:96px}}
 @media(prefers-reduced-motion:reduce){#dot{transition:none}}
 </style>
 </head>
@@ -58,6 +59,7 @@ article p{margin:0 0 18px}
   <button type="button" class="primary" id="start">👁 Start</button>
   <button type="button" id="calibrate" disabled>Calibrate</button>
   <button type="button" id="pause" aria-pressed="false" disabled>Pause</button>
+  <label class="spd">Speed <input type="range" id="speed" min="200" max="1200" step="20" aria-label="Scroll speed"></label>
   <button type="button" id="own">Paste your text</button>
 </div></header>
 
@@ -96,31 +98,48 @@ article p{margin:0 0 18px}
 <script type="module">
 {
 // ---------- settings ----------
-const ZONE_DOWN = 0.78;   // gaze below this (0 = top, 1 = bottom of screen) scrolls down
-const ZONE_UP = 0.16;     // gaze above this scrolls up
-const MAX_SPEED = 520;    // px per second at the very edge
-const SMOOTH = 0.25;      // gaze smoothing (lower = steadier)
+const ZONE_DOWN = 0.72;   // gaze below this (0 = top, 1 = bottom of screen) scrolls down
+const ZONE_UP = 0.30;     // gaze above this scrolls up (big, because the top is harder to read from a webcam)
+const HYST = 0.04;        // once scrolling, keep going until gaze is this far back inside (no stutter at the edge)
 const BLINK = 0.5;        // blink score that counts as eyes closed
 const DOUBLE_BLINK = 0.7; // two blinks within this many seconds = pause / resume
+const CALIB_POINTS = [{ y: 0.12, key: "top", msg: "Look at the dot at the top" },
+                      { y: 0.50, key: "mid", msg: "Now the middle dot" },
+                      { y: 0.88, key: "bottom", msg: "Now the dot at the bottom" }];
 
 const $ = (id) => document.getElementById(id);
 const video = $("cam");
 let landmarker = null, running = false, paused = false, lastVT = -1, faceSeen = 0;
-let calib = null;            // {top, bottom}: raw gaze values at the two dots
-let raw = null, gaze = 0.5;  // raw gaze signal and calibrated 0..1 screen position
-let eyesClosed = false, blinks = [];
-try { calib = JSON.parse(localStorage.getItem("nazar-calib") || "null"); } catch (e) {}
+let calib = null;              // raw gaze values at the three dots
+let gaze = 0.5;                // calibrated, smoothed 0..1 screen position
+let eyesClosed = false, blinks = [], recent = [];
+let vel = 0, carry = 0, scrollDir = 0;
+let speed = 520;               // px per second at the edge (slider)
+try { calib = JSON.parse(localStorage.getItem("nazar-calib-v2") || "null"); } catch (e) {}
+try { speed = +localStorage.getItem("nazar-speed") || 520; } catch (e) {}
 
-// ---------- gaze signal: iris position between the eyelids, plus head pitch ----------
-// FaceMesh indices: left eye upper lid 159, lower lid 145, iris 468; right eye 386, 374, 473.
-function gazeSignal(lm, matrix) {
+// ---------- gaze signal ----------
+// 1) MediaPipe's eye-direction scores (eyeLookDown − eyeLookUp): trained for this, and they still work looking up,
+//    when the upper eyelid lifts with the eye.
+// 2) iris position between the eyelids (helps looking down).
+// 3) head pitch from the face transformation matrix (people nod a little as they read down a page).
+function gazeSignal(lm, score, matrix) {
+  const look = ((score("eyeLookDownLeft") - score("eyeLookUpLeft")) + (score("eyeLookDownRight") - score("eyeLookUpRight"))) / 2;
   const ratio = (iris, up, lo) => (lm[iris].y - lm[up].y) / Math.max(1e-4, lm[lo].y - lm[up].y);
-  const eyes = (ratio(468, 159, 145) + ratio(473, 386, 374)) / 2;
+  const lid = (ratio(468, 159, 145) + ratio(473, 386, 374)) / 2 - 0.5;
   let pitch = 0;
-  if (matrix) { const m = matrix.data; pitch = Math.asin(Math.max(-1, Math.min(1, -m[6]))); }   // radians, + = looking down
-  return eyes + pitch * 1.2;
+  if (matrix) { const m = matrix.data; pitch = Math.asin(Math.max(-1, Math.min(1, -m[6]))); }   // radians, + = head down
+  return look + lid * 0.5 + pitch * 1.2;
 }
-const toScreen = (r) => calib ? (r - calib.top) / (calib.bottom - calib.top) : 0.5;
+// piecewise-linear map through the three calibration points
+function toScreen(r) {
+  if (!calib) return 0.5;
+  const [a, b, c] = [calib.top, calib.mid, calib.bottom];
+  const [ya, yb, yc] = CALIB_POINTS.map((p) => p.y);
+  if ((r - b) * (a - b) > 0) return yb + (r - b) / (a - b) * (ya - yb);   // upper half (and beyond)
+  return yb + (r - b) / (c - b) * (yc - yb);                              // lower half (and beyond)
+}
+const median = (arr) => { const s = [...arr].sort((x, y) => x - y); return s[s.length >> 1]; };
 
 // ---------- camera + model ----------
 async function start() {
@@ -145,10 +164,11 @@ async function start() {
       try { landmarker = await FaceLandmarker.createFromOptions(files, opts("GPU")); } catch { landmarker = await FaceLandmarker.createFromOptions(files, opts("CPU")); }
     } catch (e) { console.error(e); setStatus("Couldn't load face tracking. Check your connection."); stop(); return; }
   }
-  running = true; paused = false;
+  running = true; paused = false; setPaused(false);
   $("start").textContent = "■ Stop"; $("calibrate").disabled = false; $("pause").disabled = false;
   video.style.display = "block"; $("dot").style.display = "block";
   if (!calib) runCalibration(); else setStatus("");
+  lastT = performance.now();
   requestAnimationFrame(loop);
 }
 function stop() {
@@ -157,27 +177,32 @@ function stop() {
   video.style.display = "none"; $("dot").style.display = "none"; setStatus("Stopped. The camera is off.");
 }
 
-// ---------- calibration: look at the top dot, then the bottom dot ----------
-let calibrating = null;
+// ---------- calibration: top, middle, bottom dots ----------
+let calibrating = null, lastRaw = null;
 function runCalibration() {
-  const steps = [{ y: 0.1, msg: "Look at the dot at the top", key: "top" }, { y: 0.9, msg: "Now look at the dot at the bottom", key: "bottom" }];
   const out = {}; let i = 0;
   $("calib").style.display = "block";
   const next = () => {
-    if (i === steps.length) {
+    if (i === CALIB_POINTS.length) {
       $("calib").style.display = "none"; calibrating = null;
-      if (Math.abs(out.bottom - out.top) < 0.04) { setStatus("Calibration was unclear. Sit facing the camera in good light and try again."); return; }
-      calib = out; try { localStorage.setItem("nazar-calib", JSON.stringify(calib)); } catch (e) {}
-      setStatus("Calibrated. Read normally; look low to scroll down.");
+      const up = out.mid - out.top, down = out.bottom - out.mid;
+      if (!(up > 0.02 && down > 0.02)) {
+        setStatus("Calibration was unclear: move only your eyes to each dot, face the camera in good light, and press Calibrate again.");
+        if (!calib) calib = null; return;
+      }
+      calib = out; gaze = 0.5; recent = [];
+      try { localStorage.setItem("nazar-calib-v2", JSON.stringify(calib)); } catch (e) {}
+      setStatus("Calibrated. Read normally; look low to scroll down, high to go back.");
       return;
     }
-    const s = steps[i];
+    const s = CALIB_POINTS[i];
     $("target").style.top = `calc(${s.y * 100}% - 17px)`; $("calibMsg").textContent = s.msg;
-    calibrating = { samples: [], until: performance.now() + 1800, settleAt: performance.now() + 600 };
+    $("calibMsg").style.top = s.y < 0.5 ? "62%" : "38%";
+    const t0 = performance.now();
+    calibrating = { samples: [], until: t0 + 1700, settleAt: t0 + 700 };   // first 0.7 s: eyes still travelling
     const check = () => {
       if (performance.now() < calibrating.until) { requestAnimationFrame(check); return; }
-      const v = calibrating.samples.sort((a, b) => a - b);
-      out[s.key] = v.length ? v[Math.floor(v.length / 2)] : 0;   // median ignores blinks and jitter
+      out[s.key] = calibrating.samples.length ? median(calibrating.samples) : (lastRaw ?? 0);
       i++; next();
     };
     requestAnimationFrame(check);
@@ -201,21 +226,39 @@ function loop(now) {
       if (closed && !eyesClosed) onBlink(now / 1000);
       eyesClosed = closed;
       if (!closed) {
-        raw = gazeSignal(lm, res.facialTransformationMatrixes?.[0]);
+        const raw = gazeSignal(lm, score, res.facialTransformationMatrixes?.[0]);
+        lastRaw = raw;
         if (calibrating && now > calibrating.settleAt) calibrating.samples.push(raw);
-        gaze += (toScreen(raw) - gaze) * SMOOTH;
+        // jitter filter: median of the last 5 frames, then adaptive smoothing
+        // (small wobbles get heavy smoothing, a real eye movement comes through quickly)
+        recent.push(toScreen(raw)); if (recent.length > 5) recent.shift();
+        const target = median(recent), diff = Math.abs(target - gaze);
+        const a = Math.min(0.6, 0.08 + diff * 1.5);
+        gaze += (target - gaze) * a;
       }
       faceSeen = now;
     }
   }
   const lost = now - faceSeen > 600;
-  // scroll: nothing in the middle, gentle near the edges, faster the further you look
+
+  // which way to scroll, with hysteresis so the edge of a zone doesn't stutter
+  let want = 0;
   if (calib && !paused && !calibrating && !lost && !eyesClosed) {
-    let v = 0;
-    if (gaze > ZONE_DOWN) v = Math.min(1, (gaze - ZONE_DOWN) / (1 - ZONE_DOWN + .15));
-    else if (gaze < ZONE_UP) v = -Math.min(1, (ZONE_UP - gaze) / (ZONE_UP + .15));
-    if (v) window.scrollBy(0, Math.sign(v) * v * v * MAX_SPEED * dt);
-  }
+    const downEdge = scrollDir === 1 ? ZONE_DOWN - HYST : ZONE_DOWN;
+    const upEdge = scrollDir === -1 ? ZONE_UP + HYST : ZONE_UP;
+    if (gaze > downEdge) { scrollDir = 1; want = Math.min(1, (gaze - downEdge) / (1 - downEdge)); }
+    else if (gaze < upEdge) { scrollDir = -1; want = -Math.min(1, (upEdge - gaze) / upEdge); }
+    else scrollDir = 0;
+    want = Math.sign(want) * (0.15 + 0.85 * want * want) * speed;   // gentle start, faster deeper in the zone
+  } else scrollDir = 0;
+  if (!want && eyesClosed && vel) want = vel;                      // a blink doesn't jolt the page to a stop
+  // ease the speed (no jumps), and keep the leftover fractions of a pixel
+  vel += (want - vel) * Math.min(1, dt * 5);
+  if (Math.abs(vel) < 2 && !want) vel = 0;
+  carry += vel * dt;
+  const px = Math.trunc(carry);
+  if (px) { window.scrollBy(0, px); carry -= px; }
+
   // gaze rail
   $("dot").style.top = `${Math.max(0, Math.min(1, gaze)) * 100}%`;
   $("dot").style.opacity = lost || paused ? .3 : 1;
@@ -230,9 +273,18 @@ function onBlink(t) {
 function setPaused(p) { paused = p; $("pause").setAttribute("aria-pressed", String(p)); $("pause").textContent = p ? "Resume" : "Pause"; }
 function setStatus(s, html = false) { const el = $("status"); if (html) { if (el.innerHTML !== s) el.innerHTML = s; } else el.textContent = s; }
 
-// ---------- rail zones ----------
-$("zUp").style.cssText = `top:0;height:${ZONE_UP * 100}%`;
-$("zDown").style.cssText = `top:${ZONE_DOWN * 100}%;bottom:0`;
+// ---------- rail: zones drawn in screen terms, placed below the header ----------
+function placeRail() {
+  const rail = $("rail"); rail.style.top = "0px"; rail.style.bottom = "0px"; rail.style.height = "100vh";
+  $("zUp").style.cssText = `top:0;height:${ZONE_UP * 100}%`;
+  $("zDown").style.cssText = `top:${ZONE_DOWN * 100}%;bottom:0`;
+}
+placeRail(); addEventListener("resize", placeRail);
+
+// ---------- speed ----------
+const speedEl = $("speed");
+speedEl.value = speed;
+speedEl.addEventListener("input", () => { speed = +speedEl.value; try { localStorage.setItem("nazar-speed", speed); } catch (e) {} });
 
 // ---------- paste your own text ----------
 $("own").addEventListener("click", () => { $("paste").style.display = "grid"; $("pasteBox").focus(); });
@@ -248,7 +300,7 @@ $("usePaste").addEventListener("click", () => {
 $("start").addEventListener("click", start);
 $("calibrate").addEventListener("click", runCalibration);
 $("pause").addEventListener("click", () => setPaused(!paused));
-window.nazar = { setGaze: (g) => { gaze = g; }, get gaze() { return gaze; } };
+window.nazar = { get gaze() { return gaze; }, get calib() { return calib; } };
 }
 </script>
 </body>
